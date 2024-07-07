@@ -1,8 +1,17 @@
+import time
+
 import requests
 import selectorlib
 from datetime import datetime
+import sqlite3
 
 URL = "https://programmer100.pythonanywhere.com/"
+connection = sqlite3.connect("temperature.db")
+
+def create_table():
+    cursor = connection.cursor()
+    cursor.execute(" CREATE TABLE IF NOT EXISTS temperature(date_time TEXT, temperature TEXT)")
+    connection.commit()
 
 def scrape(url):
     response = requests.get(URL)
@@ -12,12 +21,17 @@ def scrape(url):
     value = extractor.extract(source)["temperature"]
     return value
 
-def write(temperature, filename):
+
+def write(temperature):
     date_time = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
-    with open(filename, "a") as file:
-        file.write(f"{date_time}, {temperature} \n")
+    cursor = connection.cursor()
+    cursor.execute("INSERT INTO temperature VALUES (?, ?)",(date_time, temperature))
+    connection.commit()
 
 
 if __name__ == "__main__":
-    temperature = scrape(URL)
-    write(temperature, "temperature.txt")
+    while True:
+        temperature = scrape(URL)
+        create_table()
+        write(temperature)
+        time.sleep(10)
